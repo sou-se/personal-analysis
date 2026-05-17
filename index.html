@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>統合個人分析診断</title>
+<meta name="description" content="コアスタイル・仕事スタイル・学習成長スタイルの3診断を一括実施する統合パーソナル分析ツール">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:#f0f4f8;color:#1a1a2e;min-height:100vh}
+:root{
+  --primary:#1d3557;
+  --ca:#2a9d8f;
+  --cb:#e76f51;
+  --cc:#457b9d;
+  --bg:#f0f4f8;
+  --white:#fff;
+  --gray:#888;
+  --light:#e4ecf4;
+  --border:#c5d5e8;
+  --shadow:rgba(29,53,87,.1);
+}
+.site-header{background:linear-gradient(135deg,#1d3557,#264653);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 3px 24px rgba(29,53,87,.4)}
+.header-left{display:flex;align-items:center;gap:12px}
+.site-header h1{font-size:1rem;font-weight:700;letter-spacing:.04em}
+.phase-badge{font-size:.7rem;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:.06em;transition:.3s}
+.phase-badge.pa{background:#2a9d8f}.phase-badge.pb{background:#e76f51}.phase-badge.pc{background:#457b9d}.phase-badge.done{background:#16a34a}
+.btn-settings{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:.2s}
+.btn-settings:hover{background:rgba(255,255,255,.22)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(29,53,87,.55);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:18px;padding:32px;width:92%;max-width:480px;box-shadow:0 24px 64px rgba(29,53,87,.3)}
+.modal h2{font-size:1.1rem;margin-bottom:8px;color:var(--primary)}
+.modal p{font-size:.85rem;color:#666;margin-bottom:16px;line-height:1.6}
+.modal input{width:100%;padding:11px 14px;border:2px solid #ddd;border-radius:10px;font-size:.9rem;font-family:inherit;margin-bottom:12px;transition:.2s}
+.modal input:focus{outline:none;border-color:var(--ca);box-shadow:0 0 0 3px rgba(42,157,143,.12)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.btn{padding:10px 22px;border:none;border-radius:10px;cursor:pointer;font-size:.9rem;font-family:inherit;font-weight:600;transition:.2s}
+.btn-primary{background:var(--ca);color:#fff}.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:#eee;color:var(--primary)}.btn-secondary:hover{background:#ddd}
+.screen{display:none;padding:28px 16px 60px;max-width:720px;margin:0 auto}
+.screen.active{display:block}
+.hero{text-align:center;padding:40px 0 30px}
+.hero-badge{display:inline-block;background:linear-gradient(135deg,#2a9d8f,#1d7e71);color:#fff;padding:5px 20px;border-radius:24px;font-size:.75rem;font-weight:700;letter-spacing:.12em;margin-bottom:18px;box-shadow:0 4px 16px rgba(42,157,143,.35)}
+.hero h2{font-size:2rem;font-weight:900;color:var(--primary);line-height:1.3;margin-bottom:14px}
+.hero h2 span{color:var(--ca)}
+.hero p{color:#3d5a7a;font-size:.95rem;line-height:1.8;max-width:440px;margin:0 auto}
+.phase-steps{display:flex;flex-direction:column;gap:10px;margin:28px 0}
+.phase-step{display:flex;align-items:center;gap:16px;background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 3px 16px var(--shadow);border:1.5px solid var(--border)}
+.ps-num{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff;flex-shrink:0}
+.ps-num.a{background:var(--ca)}.ps-num.b{background:var(--cb)}.ps-num.c{background:var(--cc)}
+.ps-info h4{font-size:.95rem;font-weight:700;color:var(--primary);margin-bottom:3px}
+.ps-info p{font-size:.8rem;color:#666}
+.card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 6px 32px var(--shadow);margin-bottom:20px;border:1px solid var(--border)}
+.card h3{font-size:.95rem;font-weight:700;color:var(--primary);margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--light)}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:.85rem;font-weight:600;color:var(--primary);margin-bottom:7px}
+.req{color:var(--ca);margin-left:4px}
+.form-group input{width:100%;padding:13px 16px;border:2px solid var(--border);border-radius:12px;font-size:1rem;font-family:inherit;transition:.2s;background:#f8fafc}
+.form-group input:focus{outline:none;border-color:var(--ca);box-shadow:0 0 0 3px rgba(42,157,143,.12)}
+.start-btn{width:100%;padding:18px;background:linear-gradient(135deg,#2a9d8f,#1d7e71);color:#fff;border:none;border-radius:14px;font-size:1.1rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.3s;box-shadow:0 6px 24px rgba(42,157,143,.4);letter-spacing:.06em}
+.start-btn:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(42,157,143,.5)}
+.quiz-header{background:#fff;border-radius:16px;padding:18px 22px;box-shadow:0 3px 16px var(--shadow);margin-bottom:20px;border:1px solid var(--border)}
+.quiz-phase-label{font-size:.75rem;font-weight:700;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.quiz-phase-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.qpl-a{color:var(--ca)}.qpl-a .dot{background:var(--ca)}
+.qpl-b{color:var(--cb)}.qpl-b .dot{background:var(--cb)}
+.qpl-c{color:var(--cc)}.qpl-c .dot{background:var(--cc)}
+.progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:.85rem;color:#888}
+.p-count{color:var(--primary);font-weight:700}
+.progress-bar{height:10px;background:var(--light);border-radius:5px;overflow:hidden}
+.progress-fill{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.pf-a{background:linear-gradient(90deg,#2a9d8f,#1d7e71)}
+.pf-b{background:linear-gradient(90deg,#e76f51,#e9785e)}
+.pf-c{background:linear-gradient(90deg,#457b9d,#5a8faf)}
+.axis-tag{display:inline-block;background:var(--light);color:var(--primary);font-size:.75rem;font-weight:600;padding:3px 12px;border-radius:16px;margin-bottom:14px;border:1px solid var(--border)}
+.q-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 6px 32px var(--shadow);margin-bottom:20px;border:1px solid var(--border);animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.q-num{font-size:.78rem;font-weight:700;margin-bottom:8px;letter-spacing:.06em}
+.q-num.a{color:var(--ca)}.q-num.b{color:var(--cb)}.q-num.c{color:var(--cc)}
+.q-text{font-size:1.1rem;font-weight:500;color:#1a1a2e;line-height:1.75;margin-bottom:26px}
+.answer-grid{display:flex;flex-direction:column;gap:9px}
+.answer-opt{display:flex;align-items:center;gap:14px;padding:14px 18px;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:.2s;user-select:none;background:#f8fafc}
+.answer-opt:hover{border-color:var(--ca);transform:translateX(3px)}
+.answer-opt.selected{border-color:var(--ca);background:rgba(42,157,143,.06);box-shadow:0 2px 12px rgba(42,157,143,.12)}
+.answer-dot{width:22px;height:22px;border-radius:50%;border:2.5px solid #ccc;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.answer-opt.selected .answer-dot{border-color:var(--ca);background:var(--ca)}
+.answer-opt.selected .answer-dot::after{content:'';width:7px;height:7px;border-radius:50%;background:#fff;display:block}
+.answer-num{width:24px;height:24px;border-radius:6px;background:var(--light);color:var(--primary);font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.answer-opt.selected .answer-num{background:var(--ca);color:#fff}
+.answer-label{font-size:.93rem;color:#1a1a2e;line-height:1.4}
+.q-nav{display:flex;gap:12px;justify-content:flex-end;margin-top:4px}
+.btn-next{padding:14px 36px;background:linear-gradient(135deg,var(--ca),#1d7e71);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.2s;box-shadow:0 4px 16px rgba(42,157,143,.3)}
+.btn-next:hover{transform:translateY(-2px)}.btn-next:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none}
+.bridge-card{background:#fff;border-radius:20px;padding:40px;text-align:center;box-shadow:0 8px 40px var(--shadow);border:1px solid var(--border);margin-bottom:20px}
+.bridge-icon{font-size:3rem;margin-bottom:16px}
+.bridge-card h2{font-size:1.6rem;font-weight:900;color:var(--primary);margin-bottom:10px}
+.bridge-card p{color:#666;font-size:.95rem;line-height:1.7;margin-bottom:24px}
+.bridge-next-info{background:var(--light);border-radius:14px;padding:18px;margin-bottom:24px;border:1.5px solid var(--border)}
+.bridge-next-info h4{font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:6px}
+.bridge-next-info p{font-size:.85rem;color:#555;margin-bottom:0}
+.btn-continue{padding:16px 40px;border:none;border-radius:14px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.3s;color:#fff}
+.btn-continue.b{background:linear-gradient(135deg,var(--cb),#e9785e);box-shadow:0 6px 24px rgba(231,111,81,.35)}
+.btn-continue.c{background:linear-gradient(135deg,var(--cc),#5a8faf);box-shadow:0 6px 24px rgba(69,123,157,.35)}
+.btn-continue:hover{transform:translateY(-3px)}
+.result-hero{text-align:center;padding:32px 24px;background:linear-gradient(135deg,#1d3557,#264653);border-radius:20px;margin-bottom:24px;color:#fff}
+.result-hero h2{font-size:1.8rem;font-weight:900;margin-bottom:6px}
+.result-hero .sub{font-size:.9rem;opacity:.8;margin-bottom:12px}
+.user-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:10px 24px;font-size:.9rem}
+.section-title{font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';width:4px;height:22px;background:linear-gradient(180deg,var(--ca),#1d7e71);border-radius:3px}
+.section-title.b::before{background:linear-gradient(180deg,var(--cb),#e9785e)}
+.section-title.c::before{background:linear-gradient(180deg,var(--cc),#5a8faf)}
+.trait-rank-card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 3px 16px var(--shadow);margin-bottom:10px;border:1.5px solid var(--border);display:flex;align-items:center;gap:16px;animation:fadeUp .3s ease}
+.trait-rank-card:hover{border-color:var(--ca);transform:translateX(2px)}
+.rank-num{font-size:1.5rem;font-weight:900;color:var(--ca);min-width:42px}
+.rank-num.top{color:#f59e0b}
+.trait-main{flex:1}
+.trait-name{font-size:1rem;font-weight:700;color:var(--primary);margin-bottom:2px}
+.trait-cat{font-size:.72rem;color:var(--gray);margin-bottom:6px}
+.trait-bar-row{display:flex;align-items:center;gap:10px}
+.trait-bar-wrap{flex:1;height:7px;background:var(--light);border-radius:4px;overflow:hidden}
+.trait-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ca),#1d7e71);transition:width .8s cubic-bezier(.4,0,.2,1)}
+.trait-score{font-size:.9rem;font-weight:700;color:var(--ca);min-width:44px;text-align:right}
+.scores-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+@media(min-width:500px){.scores-grid{grid-template-columns:repeat(3,1fr)}}
+.score-axis-card{background:#fff;border-radius:14px;padding:16px 14px;box-shadow:0 4px 20px var(--shadow);border:2px solid var(--border);text-align:center;transition:.2s}
+.score-axis-card:hover{transform:translateY(-2px)}
+.score-axis-icon{font-size:1.6rem;margin-bottom:4px}
+.score-axis-name{font-size:.72rem;font-weight:600;color:#3d5a7a;line-height:1.3;margin-bottom:8px;min-height:2.4em;display:flex;align-items:center;justify-content:center}
+.score-axis-num{font-size:2.2rem;font-weight:900;line-height:1;margin-bottom:6px}
+.san-b{color:var(--cb)}.san-c{color:var(--cc)}
+.score-axis-bar-wrap{height:6px;background:var(--light);border-radius:3px;overflow:hidden}
+.score-axis-bar{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sab-b{background:linear-gradient(90deg,var(--cb),#e9785e)}
+.sab-c{background:linear-gradient(90deg,var(--cc),#5a8faf)}
+.chart-card{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 32px var(--shadow);margin-bottom:24px;border:1px solid var(--border)}
+.chart-wrap{max-width:380px;margin:0 auto}
+.copy-card{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 32px var(--shadow);margin-bottom:24px;border:1px solid var(--border)}
+.copy-textarea{width:100%;height:360px;padding:14px;border:2px solid var(--border);border-radius:12px;font-family:'Noto Sans JP',sans-serif;font-size:.82rem;color:#1a1a2e;line-height:1.7;resize:vertical;background:#f8fafc;outline:none;transition:.2s}
+.copy-textarea:focus{border-color:var(--ca)}
+.copy-btn{margin-top:10px;padding:11px 24px;background:linear-gradient(135deg,var(--primary),#264653);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s}
+.copy-btn:hover{transform:translateY(-1px)}
+.result-actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+.btn-action{flex:1;min-width:140px;padding:15px 20px;border:none;border-radius:14px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.3s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-send{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff}
+.btn-send:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(22,163,74,.35)}
+.btn-retry{background:linear-gradient(135deg,var(--ca),#1d7e71);color:#fff}
+.btn-retry:hover{transform:translateY(-2px)}
+.notif{position:fixed;bottom:24px;right:24px;padding:14px 22px;border-radius:12px;font-size:.9rem;font-weight:500;box-shadow:0 10px 36px rgba(0,0,0,.2);z-index:300;animation:slideIn .3s ease;max-width:320px}
+.notif.success{background:linear-gradient(135deg,#00c851,#009940);color:#fff}
+.notif.error{background:linear-gradient(135deg,#e94560,#c0304a);color:#fff}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(max-width:480px){.hero h2{font-size:1.6rem}.result-actions{flex-direction:column}.btn-action{min-width:unset}.scores-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-left">
+    <h1>🔍 統合個人分析診断</h1>
+    <span class="phase-badge pa" id="phase-badge">診断A</span>
+  </div>
+  <button class="btn-settings" onclick="openSettings()" id="settings-btn">⚙ Webhook設定</button>
+</header>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>⚙ Webhook設定</h2>
+    <p>Google Chat Incoming Webhook URLを入力してください。全診断完了後に結果が自動送信されます。</p>
+    <input type="url" id="webhook-url-input" placeholder="https://chat.googleapis.com/v1/spaces/..." />
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSettings()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE SCREEN -->
+<div class="screen active" id="screen-profile">
+  <div class="hero">
+    <div class="hero-badge">🔬 3診断 統合分析 ｜ 合計200問</div>
+    <h2>あなたの<span>個人特性</span>を<br>総合分析しよう</h2>
+    <p>3つの診断を続けて実施し、あなたのコアスタイル・仕事スタイル・学習スタイルを統合レポートとして出力します。</p>
+    <div class="phase-steps">
+      <div class="phase-step">
+        <div class="ps-num a">A</div>
+        <div class="ps-info"><h4>コアスタイル診断</h4><p>24特性 × 5問 ＝ 120問 ｜ あなたの行動・思考の核心を分析</p></div>
+      </div>
+      <div class="phase-step">
+        <div class="ps-num b">B</div>
+        <div class="ps-info"><h4>仕事スタイル診断</h4><p>5軸 × 8問 ＝ 40問 ｜ 職場での働き方の特性を分析</p></div>
+      </div>
+      <div class="phase-step">
+        <div class="ps-num c">C</div>
+        <div class="ps-info"><h4>学習・成長スタイル診断</h4><p>5軸 × 8問 ＝ 40問 ｜ あなたの成長パターンを分析</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>プロフィール入力</h3>
+    <div class="form-group"><label>氏名<span class="req">*</span></label><input type="text" id="input-name" placeholder="山田 太郎"></div>
+    <div class="form-group"><label>所属・役職</label><input type="text" id="input-org" placeholder="〇〇事業所 / 理学療法士"></div>
+  </div>
+  <button class="start-btn" onclick="startAll()" id="start-btn">診断を開始する →</button>
+</div>
+
+<!-- QUIZ SCREEN (shared) -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-header">
+    <div class="quiz-phase-label qpl-a" id="quiz-phase-label"><span class="dot"></span><span id="quiz-phase-text">診断A：コアスタイル診断</span></div>
+    <div class="progress-top">
+      <span class="p-count" id="q-progress-text">1 / 120問</span>
+      <span id="q-progress-pct" style="font-weight:700">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill pf-a" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div class="q-card" id="q-card">
+    <div class="axis-tag" id="q-axis-tag" style="display:none"></div>
+    <div class="q-num a" id="q-num">Q1</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="answer-grid" id="answer-grid"></div>
+  </div>
+  <div class="q-nav"><button class="btn-next" id="btn-next" onclick="nextQ()" disabled>次へ →</button></div>
+</div>
+
+<!-- BRIDGE B -->
+<div class="screen" id="screen-bridge-b">
+  <div class="bridge-card">
+    <div class="bridge-icon">✅</div>
+    <h2>コアスタイル診断 完了！</h2>
+    <p>120問お疲れさまでした。<br>次は仕事スタイル診断（40問）に進みます。</p>
+    <div class="bridge-next-info">
+      <h4>🏥 診断B：仕事スタイル診断</h4>
+      <p>Big Five理論をベースにした5軸で、職場での働き方の特性を分析します。（40問）</p>
+    </div>
+    <button class="btn-continue b" onclick="startPhaseB()">仕事スタイル診断へ →</button>
+  </div>
+</div>
+
+<!-- BRIDGE C -->
+<div class="screen" id="screen-bridge-c">
+  <div class="bridge-card">
+    <div class="bridge-icon">✅</div>
+    <h2>仕事スタイル診断 完了！</h2>
+    <p>40問お疲れさまでした。<br>最後の学習・成長スタイル診断（40問）に進みます。</p>
+    <div class="bridge-next-info">
+      <h4>📖 診断C：学習・成長スタイル診断</h4>
+      <p>あなたがどのように育つか、どんな関わり方が効果的かを分析します。（40問）</p>
+    </div>
+    <button class="btn-continue c" onclick="startPhaseC()">学習・成長スタイル診断へ →</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div class="screen" id="screen-result">
+  <div class="result-hero">
+    <h2 id="result-title">統合個人分析 診断結果</h2>
+    <div class="sub" id="result-date"></div>
+    <div class="user-badge" id="result-user"></div>
+  </div>
+
+  <div class="section-title">コアスタイル診断 ｜ 全24特性ランキング</div>
+  <div id="trait-ranking"></div>
+
+  <div class="chart-card">
+    <div class="section-title b">仕事スタイル診断 ｜ 5軸スコア</div>
+    <div class="scores-grid" id="scores-b"></div>
+    <div class="chart-wrap"><canvas id="radar-b" width="360" height="360"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="section-title c">学習・成長スタイル診断 ｜ 5軸スコア</div>
+    <div class="scores-grid" id="scores-c"></div>
+    <div class="chart-wrap"><canvas id="radar-c" width="360" height="360"></canvas></div>
+  </div>
+
+  <div class="copy-card">
+    <div class="section-title">統合結果テキスト（Webhook送信用）</div>
+    <textarea class="copy-textarea" id="copy-textarea" readonly></textarea>
+    <button class="copy-btn" onclick="copyText()">📋 クリップボードにコピー</button>
+  </div>
+
+  <div class="result-actions">
+    <button class="btn-action btn-send" onclick="sendWebhook()" id="send-btn">📤 Webhookに送信</button>
+    <button class="btn-action btn-retry" onclick="retryAll()">🔄 最初からやり直す</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// TRAITS DATA (コアスタイル診断 24特性)
+// ============================================================
+const TRAITS = [
+  {name:"達成力",cat:"推進型",desc:"毎日高い目標を達成し続ける強い内なる動力を持ちます。勤勉さと充実感があなたのエネルギー源です。",advice:"日々の達成リストを作り完了にチェックを入れる習慣をつけましょう。小さな成功の積み重ねが大きな成果につながります。"},
+  {name:"規律維持力",cat:"推進型",desc:"秩序と構造の中で最高のパフォーマンスを発揮します。ルールと手順があなたの生産性を高めます。",advice:"プロジェクト管理やシステム設計の役割を積極的に担いましょう。整理整頓の能力でチームに貢献できます。"},
+  {name:"公正感覚",cat:"推進型",desc:"公平さと平等性を重視し、全員に同じ基準を適用します。安定したルールがあなたの信頼の基盤です。",advice:"ポリシー立案やルール策定の役割を担いましょう。公正な判断力でチームの信頼を勝ち取れます。"},
+  {name:"問題解決力",cat:"推進型",desc:"問題を見つけ解決することに生きがいを感じます。困難な状況を好機と捉える能力があります。",advice:"トラブルシューティングや改善プロジェクトに積極的に関わりましょう。問題解決スキルを組織の資産として活用を。"},
+  {name:"使命感",cat:"推進型",desc:"揺るぎない価値観と目的意識があなたを動かします。意義のある仕事に最大の力を発揮します。",advice:"自分の価値観と仕事の使命を結びつけましょう。意義を感じる役割や組織を選ぶことが長期的な成功への鍵です。"},
+  {name:"主導力",cat:"発信型",desc:"明確さと主導権を自然に引き寄せます。決断力とリーダーシップでグループを前進させます。",advice:"リーダーや意思決定者の役割を積極的に引き受けましょう。明確な指示と方向性でチームをまとめられます。"},
+  {name:"即行動力",cat:"発信型",desc:"アイデアを即座に行動に変える推進力を持ちます。スピードと実行力があなたの強みです。",advice:"アイデアが出たらまず小さく試してみましょう。行動することで得た学びが次のステップをより確かなものにします。"},
+  {name:"影響欲求",cat:"発信型",desc:"重要な存在として認められたい強い動機を持ちます。卓越性と影響力への追求があなたを高みへ導きます。",advice:"達成した成果を可視化し適切な場で発信しましょう。影響力のある立場や役割を積極的に目指すことが成長につながります。"},
+  {name:"言語表現力",cat:"発信型",desc:"言葉を通じて人の心を動かす卓越した力を持ちます。話すことも書くことも、あなたの得意な表現手段です。",advice:"プレゼンや発信の機会を積極的に作りましょう。あなたの言語化能力はチームや組織に大きな価値をもたらします。"},
+  {name:"向上志向",cat:"発信型",desc:"比較と競争からエネルギーを得ます。勝利への強い意欲があなたのパフォーマンスを最大化します。",advice:"競える目標や指標を設定しましょう。ランキングやベンチマークを活用することで継続的な成長への意欲を保てます。"},
+  {name:"社交性",cat:"つながり型",desc:"初対面の人とすぐに打ち解ける天性の社交力を持ちます。新しい人との出会いがあなたのエネルギーです。",advice:"ネットワーキングイベントや交流会に積極的に参加しましょう。広い人脈があなたとチームの可能性を大きく広げます。"},
+  {name:"親密性構築力",cat:"つながり型",desc:"少数の深い信頼関係を築くことに喜びを感じます。誠実なつながりがあなたの人間関係の核心です。",advice:"信頼できる少数の人との関係を大切に深めましょう。深いパートナーシップがあなたの最大のサポートネットワークになります。"},
+  {name:"育成力",cat:"つながり型",desc:"他者の可能性を引き出すことに純粋な喜びを感じます。人の成長を見守ることがあなたのモチベーションです。",advice:"メンタリングやコーチングの機会を積極的に持ちましょう。他者の成長を支援することであなた自身も大きく成長できます。"},
+  {name:"感情感受性",cat:"つながり型",desc:"他者の感情を深く感じ取る鋭い感受性を持ちます。人の気持ちに寄り添うことが自然にできます。",advice:"感情的なサポートが必要な場面で積極的に関わりましょう。あなたの共感力はチームの心理的安全性を高める貴重な力です。"},
+  {name:"合意形成力",cat:"つながり型",desc:"共通点を見つけ対立を和らげる卓越した調整力を持ちます。合意形成と協力関係の構築が得意です。",advice:"対話の場や合意形成プロセスでファシリテーターを担いましょう。摩擦を減らし全員が前進できる環境づくりに貢献できます。"},
+  {name:"包括力",cat:"つながり型",desc:"誰も取り残さない温かい配慮の心を持ちます。多様な人々を歓迎し受け入れる姿勢があなたの魅力です。",advice:"多様性・包摂性に関わる取り組みに積極的に参加しましょう。全員が輝ける環境づくりにあなたのリーダーシップを活かせます。"},
+  {name:"論理分析力",cat:"思考型",desc:"データと論理に基づく鋭い分析力を持ちます。証拠を積み重ねて真実を明らかにする力があります。",advice:"データ分析や根拠に基づく意思決定プロセスで力を発揮しましょう。数字や事実であなたの洞察をチームに共有することが有効です。"},
+  {name:"ビジョン想像力",cat:"思考型",desc:"未来の可能性を鮮明に思い描く力を持ちます。ビジョンで人を鼓舞し前進させることが得意です。",advice:"長期ビジョンの策定や戦略立案に積極的に関わりましょう。あなたの未来像を具体的に語ることでチームを力強く導けます。"},
+  {name:"発想転換力",cat:"思考型",desc:"独創的なアイデアと新しい視点を生み出す創造力を持ちます。異なる概念を結びつける発想が得意です。",advice:"ブレインストーミングや新規プロジェクトの立ち上げで力を発揮しましょう。型にはまらない発想でイノベーションを生み出せます。"},
+  {name:"知識蓄積力",cat:"思考型",desc:"幅広い知識や情報を収集し蓄積する旺盛な好奇心を持ちます。知の探求があなたの喜びです。",advice:"学んだ知識を整理・共有する仕組みを作りましょう。あなたの豊富な情報はチームや組織の貴重な知的資源になります。"},
+  {name:"戦略知性",cat:"思考型",desc:"複雑な状況の中から最善の道筋を見つける卓越した思考力を持ちます。代替案を考え抜く力があります。",advice:"戦略計画や問題解決プロセスで積極的にリードしましょう。複数の選択肢を提示し最善策を選ぶ力がチームに価値をもたらします。"},
+  {name:"継続学習力",cat:"思考型",desc:"学ぶこと自体に純粋な喜びを感じる旺盛な知的好奇心を持ちます。成長し続けることがあなたの本質です。",advice:"新しいスキルを習得する機会を積極的に求めましょう。学んだことをチームに還元することで組織全体の成長にも貢献できます。"},
+  {name:"深考力",cat:"思考型",desc:"深く考え自己を理解する豊かな内省力を持ちます。一人で考える時間があなたの思考を深めます。",advice:"定期的に考える時間を意識的に確保しましょう。深い洞察をメモや文章として記録することであなたの思考を組織の価値に変えられます。"},
+  {name:"背景探求力",cat:"思考型",desc:"過去の経験と歴史から現在を理解する深い洞察力を持ちます。背景を知ることで本質が見えてきます。",advice:"プロジェクトの開始前に過去の事例を調査しましょう。歴史的な文脈を提供することでチームがより良い意思決定を行えます。"}
+];
+
+const REV_IDX = [4,3,3,4,1, 3,1,4,2,5, 3,5,2,1,4,2, 3,5,4,1,2,4,3,1];
+
+const RAW_QS = [
+  "毎日何かを成し遂げることに強い満足感を感じる。","困難なプロジェクトでも最後までやり遂げる自信がある。","目標を達成したとき、次の目標をすぐに設定したくなる。","忙しい日々の中でも充実感を得られる方だ。","どんな小さなことでも完了させないと気が済まない。",
+  "物事を整理整頓して進めることが得意だ。","ルールや手順に従うことで安心感を覚える。","計画通りに物事が進むことを好む。","他者が乱雑に仕事をしていると落ち着かなくなる。","スケジュールを守ることを何より重視する。",
+  "全員が同じルールに従うべきだと思う。","えこひいきは絶対に許せないと強く感じる。","公平なプロセスこそが最良の結果をもたらすと信じる。","人によって態度や対応を変えることに強い抵抗を感じる。","全員に同じ基準を適用することが正しいと確信している。",
+  "問題を発見して解決することに強い喜びを感じる。","物事がうまくいっていないとき、原因を探ることが好きだ。","壊れたものや不具合を直すことに達成感を覚える。","課題が山積みの状況でも比較的冷静に対処できる。","困難な状況を立て直すことに大きなやりがいを感じる。",
+  "自分の核となる価値観は何があっても変わらない。","仕事を通じて意味や目的を見つけることが重要だ。","利益よりも自分の価値観を優先することがある。","家族・誠実さ・奉仕など普遍的な価値を大切にしている。","自分の信念に反することは絶対にしたくないと思う。",
+  "他者に対して明確な指示を出すことにためらいがない。","状況をコントロールしたいという必要性を強く感じる。","他者を率いて決定を下すことが自然にできる。","直接的で率直な物言いを好む。","リーダーシップを取ることに全く抵抗がない。",
+  "新しいアイデアをすぐに行動に移したくなる。","じっくり考えるより先に動いてしまうことがよくある。","長い計画を立てるより即座に実行することを好む。","行動することで思考が整理されると感じる。","まず動き始めれば後は何とかなると思う方だ。",
+  "重要な人物として周囲から認められたいという欲求がある。","影響力を持つことに大きな意義と喜びを感じる。","自分の功績や名声が将来に残ることを意識する。","卓越したパフォーマンスへの強い動機を持っている。","他者から尊敬・評価されることが大切だと感じる。",
+  "自分の考えをわかりやすく言葉にするのが得意だ。","聴衆を引き込む話し方が自然にできる。","話すことや書くことで自分を表現することが好きだ。","プレゼンテーションや説明が得意だと感じる。","ストーリーを語ることで相手の心を動かせる。",
+  "他者と比較して自分の位置を常に意識する。","勝つことに強いモチベーションを感じる。","競争の場では実力を最大限に発揮できる。","順位やランキングを自然と気にしてしまう。","勝負事での敗北を反省して次に活かす。",
+  "初対面の人とすぐに打ち解けることができる。","見知らぬ人に話しかけることに楽しさを感じる。","どこへ行っても自然と友達を作るのが得意だ。","会合では新しい人との交流を積極的に楽しむ。","人脈を広げることに強い喜びを感じる。",
+  "深い信頼関係を築くことを何より大切にしている。","多くの知人より信頼できる少数の友人を持つことを好む。","親しい人との関係をより深めることに喜びを感じる。","人の内面・価値観を深く理解することに興味がある。","長年の友人との絆を特に大切にしている。",
+  "他者のわずかな進歩にも大きな満足感を覚える。","人の潜在能力を引き出すことが好きだ。","他者が成長する姿を側で見ることに喜びを感じる。","人の長所を見つけてそれを伸ばすことが得意だ。","教えることや指導することに大きなやりがいを感じる。",
+  "他者の感情を自分のことのように強く感じ取れる。","人が悲しんでいるとき、自分も同じように胸が痛む。","他者の表情や仕草からその気持ちを敏感に読み取れる。","感情的なサポートを周囲から求められることが多い。","人の感情に非常に敏感に反応する方だ。",
+  "対立よりも合意点を見つけることを常に優先する。","争いを避け共通の利益を探すことが自然にできる。","異なる意見を調整して全員が納得できる合意を導くことが好きだ。","チームが協力し合うことに強い価値を感じる。","摩擦のない協調的な環境を作ることに力を注ぐ。",
+  "誰もが輪に入れるよう自然と配慮してしまう。","疎外感を感じている人に気づき、積極的に声をかける。","誰も排除されないよう常に意識して行動している。","多様な背景を持つ人々を柔軟に受け入れることができる。","全員が歓迎されていると感じられる環境づくりを大切にする。",
+  "データや証拠に基づいて判断することを強く好む。","物事の原因と結果を論理的に丁寧に考える。","感情より客観的な事実を重視した議論を好む。","問題を細かく分解して体系的に考えることが得意だ。","主張の根拠が不明確な場合、そのまま受け入れにくい。",
+  "将来の可能性を想像することにワクワクする。","将来の鮮明なビジョンを頭に描くことができる。","現在の制約より未来の可能性を常に重視する。","夢を語るとき、細部まで生き生きと描ける。","未来をより良くするために今すぐ行動することが大切だ。",
+  "一見無関係なものどうしのつながりを発見するのが楽しい。","新しいアイデアが次々と自然に浮かんでくる。","独創的な視点から問題を解決することが好きだ。","既存の前提を疑い別の可能性を考えることが楽しい。","既存の枠組みにとらわれない発想が自然にできる。",
+  "多くの情報や知識を収集することが好きだ。","後で役立つかもしれないものを手放すことが難しい。","様々なテーマについて幅広く知識を蓄えることが好きだ。","情報を集めること自体に満足感を覚える。","多岐にわたる分野への強い興味・関心がある。",
+  "複数の選択肢の中から最善の道を選ぶことが得意だ。","将来起こりうる問題を事前に察知し準備できる。","複雑で混乱した状況でもパターンを見つけることができる。","いくつかの代替案を考え比較してから行動する。","長期的・俯瞰的な視点で物事を常に考えることが得意だ。",
+  "新しいことを学ぶプロセス自体が好きだ。","知識を段階的に習得していくことに喜びを感じる。","研修・セミナー・勉強会に積極的に参加する。","学ぶことで自分が確実に成長していると感じる。","新しいスキルや知識を身につけることに常に意欲的だ。",
+  "一人でじっくり考える時間を何より大切にしている。","自分の思考プロセスを振り返り分析することが好きだ。","深く考えることそのものに大きな喜びを感じる。","自分自身をより深く理解するために定期的に内省する。","物事の本質や深い意味を追求して考えることが得意だ。",
+  "過去の経験・歴史を振り返ることで現在をよく理解できる。","物事の歴史や背景を知ることで全体像が明確になる。","現在の状況を理解するために必ず過去を振り返る。","過去の事例から教訓を引き出すことを大切にしている。","物事の起源・経緯・由来を知ることに強い興味がある。"
+];
+
+const QS_A = [];
+for(let si=0;si<24;si++){
+  for(let qi=0;qi<5;qi++){
+    QS_A.push({text:RAW_QS[si*5+qi],si:si,reverse:(qi+1)===REV_IDX[si]});
+  }
+}
+
+
+// 診断B：仕事スタイル（BigFive）
+const AXES_B = [
+  {id:'A',name:'患者・チームへの関わり方',icon:'🤝'},
+  {id:'B',name:'チーム内での役割スタイル',icon:'👥'},
+  {id:'C',name:'業務の進め方・責任感',icon:'📋'},
+  {id:'D',name:'学習・変化への対応力',icon:'📚'},
+  {id:'E',name:'ストレス・プレッシャーへの対処',icon:'🧘'}
+];
+const QS_B = [
+  {axis:0,text:'患者さんや利用者と話すとき、自分から積極的に声をかける方だ',reverse:false},
+  {axis:0,text:'チームの会議や打ち合わせで、自分の意見を積極的に発言する',reverse:false},
+  {axis:0,text:'新しいスタッフや実習生に、自分から声をかけてサポートする',reverse:false},
+  {axis:0,text:'人と関わることでエネルギーが湧いてくる感じがある',reverse:false},
+  {axis:0,text:'大人数の場よりも、1対1や少人数の方が力を発揮しやすい',reverse:true},
+  {axis:0,text:'患者さんの表情や些細な変化にすぐ気づく方だ',reverse:false},
+  {axis:0,text:'チームの雰囲気が悪いとき、自分から働きかけて改善しようとする',reverse:false},
+  {axis:0,text:'一人で集中して作業する時間が、自分には必要だと感じる',reverse:true},
+  {axis:1,text:'チームの中で、自然とまとめ役や調整役になることが多い',reverse:false},
+  {axis:1,text:'他のスタッフが困っていたら、自分の仕事を後回しにしても助けに行く',reverse:false},
+  {axis:1,text:'チームの方針には、まず合わせてから自分の考えを伝えるようにしている',reverse:false},
+  {axis:1,text:'誰かと一緒に取り組む方が、一人でやるより良い結果が出ると思う',reverse:false},
+  {axis:1,text:'自分のやり方で進めた方が、効率よく仕事できると感じることが多い',reverse:true},
+  {axis:1,text:'チームの目標のために、自分の意見を引っ込めることができる',reverse:false},
+  {axis:1,text:'後輩や部下の成長を見守ることに、やりがいを感じる',reverse:false},
+  {axis:1,text:'チームの合意より、正しいと思うことを優先して行動することがある',reverse:true},
+  {axis:2,text:'仕事の計画を立ててから取り組む方だ',reverse:false},
+  {axis:2,text:'記録や報告書は、丁寧に・期限より早めに仕上げる方だ',reverse:false},
+  {axis:2,text:'一度引き受けた仕事は、最後まで責任を持ってやり遂げる',reverse:false},
+  {axis:2,text:'業務の優先順位を自分で整理して動くことができる',reverse:false},
+  {axis:2,text:'状況に応じて柔軟に予定を変えることが得意だ',reverse:true},
+  {axis:2,text:'ミスをしたとき、原因を振り返って次に活かすようにしている',reverse:false},
+  {axis:2,text:'細かいところまで確認してから、次のステップに進む方だ',reverse:false},
+  {axis:2,text:'スピードを重視して、まず動いてみる方だ',reverse:true},
+  {axis:3,text:'新しい技術や知識を学ぶことが好きだ',reverse:false},
+  {axis:3,text:'職場のルールや手順が変わっても、比較的すんなり対応できる',reverse:false},
+  {axis:3,text:'勉強会や研修に、自分から積極的に参加する方だ',reverse:false},
+  {axis:3,text:'自分の専門外のことにも、興味を持って学ぼうとする',reverse:false},
+  {axis:3,text:'新しいやり方を試してみることに、抵抗感が少ない',reverse:false},
+  {axis:3,text:'患者さんや現場から学べることが多いと感じている',reverse:false},
+  {axis:3,text:'慣れた方法の方が安心できるので、変化はゆっくり取り入れたい',reverse:true},
+  {axis:3,text:'勉強や情報収集は、必要に迫られてからする方だ',reverse:true},
+  {axis:4,text:'忙しい時期でも、気持ちの切り替えが比較的うまくできる',reverse:false},
+  {axis:4,text:'理不尽なことがあっても、感情的にならずに対処できる方だ',reverse:false},
+  {axis:4,text:'仕事のプレッシャーがあっても、平常心を保ちやすい',reverse:false},
+  {axis:4,text:'悩みごとがあっても、引きずらずに仕事に集中できる',reverse:false},
+  {axis:4,text:'つらい出来事があっても、時間が経てば気持ちが回復しやすい',reverse:false},
+  {axis:4,text:'職場の人間関係のストレスが、仕事のパフォーマンスに影響しやすい',reverse:true},
+  {axis:4,text:'患者さんや家族からクレームを受けても、冷静に対応できる',reverse:false},
+  {axis:4,text:'仕事の悩みを家に持ち帰ってしまうことが多い',reverse:true}
+];
+
+// 診断C：学習・成長スタイル
+const AXES_C = [
+  {id:'A',name:'情報の受け取り方',icon:'👁️'},
+  {id:'B',name:'フィードバックの受け取り方',icon:'💬'},
+  {id:'C',name:'成長の動機',icon:'🔥'},
+  {id:'D',name:'壁への対処スタイル',icon:'🧩'},
+  {id:'E',name:'理想の関わり方',icon:'🤲'}
+];
+const QS_C = [
+  {axis:0,text:'手順や技術を覚えるとき、実際にやってみることが一番身につく',reverse:false},
+  {axis:0,text:'誰かがやっているところを見てから自分でやる方が、うまくできる',reverse:false},
+  {axis:0,text:'口頭で説明されるより、資料や図を見て理解する方が得意だ',reverse:false},
+  {axis:0,text:'新しい知識は、実際の患者さんや現場と結びつけて覚える方が定着しやすい',reverse:false},
+  {axis:0,text:'説明を聞くだけで、だいたいイメージがつかめる方だ',reverse:true},
+  {axis:0,text:'マニュアルや手順書を読んで理解するのが得意だ',reverse:false},
+  {axis:0,text:'体を動かしながら覚えることが、自分には合っている',reverse:false},
+  {axis:0,text:'講義形式の研修でも、集中して内容を吸収できる方だ',reverse:true},
+  {axis:1,text:'自分のやり方について、率直にはっきり言ってもらえる方がありがたい',reverse:false},
+  {axis:1,text:'改善点は、直接指摘してもらった方が次に活かしやすい',reverse:false},
+  {axis:1,text:'良かった点も改善点も、具体的に言葉で伝えてもらえると助かる',reverse:false},
+  {axis:1,text:'フィードバックはすぐにもらいたい。時間が経つと活かしにくい',reverse:false},
+  {axis:1,text:'自分で振り返って気づく方が、学びが深くなると感じる',reverse:true},
+  {axis:1,text:'上司や先輩から定期的にフィードバックをもらえる環境が好きだ',reverse:false},
+  {axis:1,text:'厳しい指摘でも、成長のためなら受け入れられる',reverse:false},
+  {axis:1,text:'アドバイスより、まず自分で考える時間がほしいと感じることが多い',reverse:true},
+  {axis:2,text:'患者さんや利用者に喜んでもらえると、もっと頑張ろうという気持ちになる',reverse:false},
+  {axis:2,text:'チームや職場の役に立っていると感じると、やる気が出る',reverse:false},
+  {axis:2,text:'新しいことができるようになること自体が、自分のモチベーションになる',reverse:false},
+  {axis:2,text:'自分の成長が数字や評価として見えると、やる気が上がる',reverse:false},
+  {axis:2,text:'仲間と一緒に目標に向かって取り組むことが、成長の原動力になる',reverse:false},
+  {axis:2,text:'誰かに認めてもらうより、自分自身が納得できることが大切だ',reverse:true},
+  {axis:2,text:'尊敬できる先輩や上司の存在が、自分の成長意欲に大きく影響する',reverse:false},
+  {axis:2,text:'外からの評価より、自分の内側からくる目標の方が長続きする',reverse:true},
+  {axis:3,text:'困ったことがあったら、早めに上司や先輩に相談する方だ',reverse:false},
+  {axis:3,text:'わからないことはすぐ聞く。一人で抱え込まないようにしている',reverse:false},
+  {axis:3,text:'問題が起きたとき、チームで解決策を考えることを好む',reverse:false},
+  {axis:3,text:'助けを求めることを、弱さではなくチームワークだと思っている',reverse:false},
+  {axis:3,text:'まず自分でとことん考えてから、それでもわからなければ聞く',reverse:true},
+  {axis:3,text:'相談しやすい環境があると、仕事に安心して取り組める',reverse:false},
+  {axis:3,text:'困ったときに頼れる人が周りにいることが、自分には大切だ',reverse:false},
+  {axis:3,text:'一人で試行錯誤する時間が、自分には必要だと感じる',reverse:true},
+  {axis:4,text:'上司や先輩に細かく見てもらえると、安心して仕事に取り組める',reverse:false},
+  {axis:4,text:'こまめに声をかけてもらえる環境が、自分には合っている',reverse:false},
+  {axis:4,text:'進捗を定期的に確認してもらえると、ペースを保ちやすい',reverse:false},
+  {axis:4,text:'具体的な指示やアドバイスがあると、仕事に取り組みやすい',reverse:false},
+  {axis:4,text:'ある程度任せてもらえる方が、自分の力を発揮しやすい',reverse:true},
+  {axis:4,text:'最初は丁寧に教えてもらい、慣れてきたら自分でやらせてほしい',reverse:false},
+  {axis:4,text:'上司とのコミュニケーションが多い方が、成長を実感しやすい',reverse:false},
+  {axis:4,text:'自分のやり方で進められる裁量が、モチベーションにつながる',reverse:true}
+];
+
+const LABELS = ['1　まったくあてはまらない','2　あまりあてはまらない','3　どちらともいえない','4　ややあてはまる','5　とてもあてはまる'];
+
+
+// ============================================================
+// DEFAULT WEBHOOK (固定URL)
+// ============================================================
+const DEFAULT_WEBHOOK = 'https://chat.googleapis.com/v1/spaces/AAQA8jkPwSk/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=AKWbX7bPqqjbWyUVd3ql3aodulkS2ybhjlh8azgv9Qk';
+
+// ============================================================
+// STATE
+// ============================================================
+let profile={name:'',org:''};
+let currentPhase='a';
+let currentQ=0;
+let answersA=new Array(24).fill(0);
+let answersB=new Array(40).fill(null);
+let answersC=new Array(40).fill(null);
+let scoresA=[];
+let scoresB=[0,0,0,0,0];
+let scoresC=[0,0,0,0,0];
+let shuffledA=[];
+let diagDate='';
+let chartB=null, chartC=null;
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function openSettings(){
+  document.getElementById('webhook-url-input').value=localStorage.getItem('webhookUrl')||DEFAULT_WEBHOOK;
+  document.getElementById('settings-modal').classList.add('active');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('active');}
+function saveSettings(){
+  localStorage.setItem('webhookUrl',document.getElementById('webhook-url-input').value.trim());
+  closeSettings();showNotif('設定を保存しました','success');
+}
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ============================================================
+// SHUFFLE (balanced for Phase A)
+// ============================================================
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function balancedShuffle(qs){
+  const groups=Array.from({length:24},()=>[]);
+  qs.forEach(q=>groups[q.si].push(q));
+  groups.forEach(g=>{for(let i=g.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[g[i],g[j]]=[g[j],g[i]];}});
+  const result=[];const idxs=groups.map(()=>0);
+  const order=shuffle([...Array(24).keys()]);
+  for(let pass=0;pass<5;pass++){const po=shuffle(order);po.forEach(si=>{if(idxs[si]<groups[si].length)result.push(groups[si][idxs[si]++]);});}
+  return result;
+}
+
+// ============================================================
+// START
+// ============================================================
+function startAll(){
+  const name=document.getElementById('input-name').value.trim();
+  if(!name){alert('氏名を入力してください。');return;}
+  profile={name,org:document.getElementById('input-org').value.trim()};
+  const now=new Date();
+  diagDate=now.toLocaleDateString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'});
+  answersA=new Array(24).fill(0);
+  answersB=new Array(40).fill(null);
+  answersC=new Array(40).fill(null);
+  shuffledA=balancedShuffle(QS_A);
+  currentQ=0;
+  currentPhase='a';
+  updatePhaseBadge('a');
+  showScreen('quiz');
+  renderQ();
+}
+
+// ============================================================
+// PHASE BADGE
+// ============================================================
+function updatePhaseBadge(phase){
+  const b=document.getElementById('phase-badge');
+  b.className='phase-badge p'+phase;
+  b.textContent=phase==='a'?'診断A':phase==='b'?'診断B':'診断C';
+}
+
+// ============================================================
+// QUIZ RENDER
+// ============================================================
+function renderQ(){
+  let q,total,phaseClass,phaseText,showAxisTag=false,axisName='';
+  if(currentPhase==='a'){
+    q=shuffledA[currentQ];total=120;phaseClass='a';phaseText='診断A：コアスタイル診断';
+  } else if(currentPhase==='b'){
+    q=QS_B[currentQ];total=40;phaseClass='b';phaseText='診断B：仕事スタイル診断';
+    showAxisTag=true;axisName='軸'+AXES_B[q.axis].id+'：'+AXES_B[q.axis].name;
+  } else {
+    q=QS_C[currentQ];total=40;phaseClass='c';phaseText='診断C：学習・成長スタイル診断';
+    showAxisTag=true;axisName='軸'+AXES_C[q.axis].id+'：'+AXES_C[q.axis].name;
+  }
+  const pct=Math.round(currentQ/total*100);
+  const lbl=document.getElementById('quiz-phase-label');
+  lbl.className='quiz-phase-label qpl-'+phaseClass;
+  document.getElementById('quiz-phase-text').textContent=phaseText;
+  document.getElementById('q-progress-text').textContent=`${currentQ+1} / ${total}問`;
+  document.getElementById('q-progress-pct').textContent=pct+'%';
+  const pf=document.getElementById('progress-fill');
+  pf.className='progress-fill pf-'+phaseClass;
+  pf.style.width=pct+'%';
+  const tag=document.getElementById('q-axis-tag');
+  tag.style.display=showAxisTag?'inline-block':'none';
+  tag.textContent=axisName;
+  const qnum=document.getElementById('q-num');
+  qnum.className='q-num '+phaseClass;
+  qnum.textContent='Q'+(currentQ+1);
+  document.getElementById('q-text').textContent=q.text;
+  const grid=document.getElementById('answer-grid');
+  grid.innerHTML='';
+  const curAns=currentPhase==='b'?answersB[currentQ]:currentPhase==='c'?answersC[currentQ]:null;
+  for(let v=1;v<=5;v++){
+    const opt=document.createElement('div');
+    opt.className='answer-opt'+(curAns===v?' selected':'');
+    opt.dataset.val=v;
+    opt.innerHTML=`<div class="answer-dot"></div><div class="answer-num">${v}</div><div class="answer-label">${LABELS[v-1]}</div>`;
+    opt.addEventListener('click',()=>selectAnswer(v));
+    grid.appendChild(opt);
+  }
+  document.getElementById('btn-next').disabled=(currentPhase!=='a'&&curAns===null)||(currentPhase==='a'&&false);
+  if(currentPhase==='a') document.getElementById('btn-next').disabled=true;
+  const card=document.getElementById('q-card');
+  card.style.animation='none';card.offsetHeight;card.style.animation='fadeUp .3s ease';
+}
+
+function selectAnswer(v){
+  if(currentPhase==='b') answersB[currentQ]=v;
+  else if(currentPhase==='c') answersC[currentQ]=v;
+  document.querySelectorAll('.answer-opt').forEach(opt=>opt.classList.toggle('selected',parseInt(opt.dataset.val)===v));
+  document.getElementById('btn-next').disabled=false;
+}
+
+function nextQ(){
+  const btn=document.getElementById('btn-next');
+  if(btn.disabled) return;
+  if(currentPhase==='a'){
+    const selected=document.querySelector('.answer-opt.selected');
+    if(!selected) return;
+    const raw=parseInt(selected.dataset.val);
+    const q=shuffledA[currentQ];
+    const score=q.reverse?(6-raw):raw;
+    answersA[q.si]=(answersA[q.si]||0)+score;
+    currentQ++;
+    if(currentQ>=120){finishPhaseA();return;}
+  } else if(currentPhase==='b'){
+    if(answersB[currentQ]===null) return;
+    currentQ++;
+    if(currentQ>=40){finishPhaseB();return;}
+  } else {
+    if(answersC[currentQ]===null) return;
+    currentQ++;
+    if(currentQ>=40){finishPhaseC();return;}
+  }
+  renderQ();
+}
+
+// ============================================================
+// PHASE FINISHERS
+// ============================================================
+function finishPhaseA(){
+  scoresA=answersA.map(s=>({score:s,pct:Math.round(s/25*100)}));
+  updatePhaseBadge('b');
+  showScreen('bridge-b');
+}
+function startPhaseB(){currentPhase='b';currentQ=0;updatePhaseBadge('b');showScreen('quiz');renderQ();}
+
+function finishPhaseB(){
+  const rawSums=[0,0,0,0,0];
+  QS_B.forEach((q,i)=>{const raw=answersB[i];const sc=q.reverse?(6-raw):raw;rawSums[q.axis]+=sc;});
+  scoresB=rawSums.map(s=>Math.round((s-8)/32*100));
+  updatePhaseBadge('c');
+  showScreen('bridge-c');
+}
+function startPhaseC(){currentPhase='c';currentQ=0;updatePhaseBadge('c');showScreen('quiz');renderQ();}
+
+function finishPhaseC(){
+  const rawSums=[0,0,0,0,0];
+  QS_C.forEach((q,i)=>{const raw=answersC[i];const sc=q.reverse?(6-raw):raw;rawSums[q.axis]+=sc;});
+  scoresC=rawSums.map(s=>Math.round((s-8)/32*100));
+  updatePhaseBadge('done');
+  document.getElementById('phase-badge').className='phase-badge done';
+  document.getElementById('phase-badge').textContent='完了';
+  showResults();
+}
+
+// ============================================================
+// RESULTS
+// ============================================================
+function showResults(){
+  document.getElementById('result-title').textContent=profile.name+'さんの統合個人分析結果';
+  document.getElementById('result-date').textContent='受診日：'+diagDate;
+  document.getElementById('result-user').textContent=profile.name+(profile.org?'　'+profile.org:'');
+
+  // Rank all 24 traits
+  const ranked=[...TRAITS.map((t,i)=>({...t,score:answersA[i],pct:Math.round(answersA[i]/25*100),origIdx:i}))].sort((a,b)=>b.score-a.score);
+  const rankEl=document.getElementById('trait-ranking');
+  rankEl.innerHTML='';
+  ranked.forEach((t,i)=>{
+    const card=document.createElement('div');
+    card.className='trait-rank-card';
+    card.style.animationDelay=(i*0.03)+'s';
+    card.innerHTML=`<div class="rank-num${i<3?' top':''}">${i+1}</div>
+      <div class="trait-main">
+        <div class="trait-name">${t.name}</div>
+        <div class="trait-cat">${t.cat}</div>
+        <div class="trait-bar-row">
+          <div class="trait-bar-wrap"><div class="trait-bar-fill" style="width:0%" data-w="${t.pct}%"></div></div>
+          <div class="trait-score">${t.score}/25</div>
+        </div>
+      </div>`;
+    rankEl.appendChild(card);
+  });
+  setTimeout(()=>document.querySelectorAll('.trait-bar-fill').forEach(el=>{el.style.width=el.dataset.w;el.style.transition='width .8s ease';}),100);
+
+  // Scores B
+  const sbEl=document.getElementById('scores-b');
+  sbEl.innerHTML='';
+  AXES_B.forEach((ax,i)=>{
+    const card=document.createElement('div');
+    card.className='score-axis-card';
+    card.innerHTML=`<div class="score-axis-icon">${ax.icon}</div><div class="score-axis-name">${ax.name}</div><div class="score-axis-num san-b">${scoresB[i]}</div><div class="score-axis-bar-wrap"><div class="score-axis-bar sab-b" style="width:${scoresB[i]}%"></div></div>`;
+    sbEl.appendChild(card);
+  });
+
+  // Scores C
+  const scEl=document.getElementById('scores-c');
+  scEl.innerHTML='';
+  AXES_C.forEach((ax,i)=>{
+    const card=document.createElement('div');
+    card.className='score-axis-card';
+    card.innerHTML=`<div class="score-axis-icon">${ax.icon}</div><div class="score-axis-name">${ax.name}</div><div class="score-axis-num san-c">${scoresC[i]}</div><div class="score-axis-bar-wrap"><div class="score-axis-bar sab-c" style="width:${scoresC[i]}%"></div></div>`;
+    scEl.appendChild(card);
+  });
+
+  buildRadar('radar-b',AXES_B.map(a=>a.name),scoresB,'rgba(194,65,12,0.2)','rgba(194,65,12,0.9)');
+  buildRadar('radar-c',AXES_C.map(a=>a.name),scoresC,'rgba(3,105,161,0.2)','rgba(3,105,161,0.9)');
+  buildCopyText(ranked);
+  showScreen('result');
+  autoSendWebhook();
+}
+
+function buildRadar(id,labels,data,bg,border){
+  const existing=Chart.getChart(id);if(existing)existing.destroy();
+  const ctx=document.getElementById(id).getContext('2d');
+  new Chart(ctx,{type:'radar',data:{labels,datasets:[{data,backgroundColor:bg,borderColor:border,borderWidth:2.5,pointBackgroundColor:border,pointBorderColor:'#fff',pointBorderWidth:2,pointRadius:5}]},options:{animation:{duration:0},responsive:true,scales:{r:{min:0,max:100,ticks:{stepSize:25,font:{size:10},color:'#999',backdropColor:'transparent'},pointLabels:{font:{size:11,family:"'Noto Sans JP',sans-serif"},color:'#1d3557'},grid:{color:'rgba(30,27,75,0.1)'},angleLines:{color:'rgba(30,27,75,0.12)'}}},plugins:{legend:{display:false}}}});
+}
+
+function buildCopyText(ranked){
+  const rankLines=ranked.map((t,i)=>`  ${String(i+1).padStart(2,' ')}位. ${t.name}（${t.cat}）：${t.score}/25点`).join('\n');
+  const bLines=AXES_B.map((ax,i)=>`  ${ax.name}：${scoresB[i]}`).join('\n');
+  const cLines=AXES_C.map((ax,i)=>`  ${ax.name}：${scoresC[i]}`).join('\n');
+  const orgPart=profile.org?`　所属：${profile.org}`:'';
+  const txt=`【統合個人分析 診断結果】\n氏名：${profile.name}${orgPart}\n受診日：${diagDate}\n\n■ コアスタイル診断（全24特性ランキング）\n${rankLines}\n\n■ 仕事スタイル診断\n${bLines}\n\n■ 学習・成長スタイル診断\n${cLines}`;
+  document.getElementById('copy-textarea').value=txt;
+}
+
+function copyText(){
+  const ta=document.getElementById('copy-textarea');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>showNotif('📋 コピーしました！','success')).catch(()=>{document.execCommand('copy');showNotif('📋 コピーしました！','success');});
+}
+
+async function sendWebhook(){
+  const url=(localStorage.getItem('webhookUrl')||DEFAULT_WEBHOOK).trim();
+  if(!url||!url.startsWith('http')){showNotif('⚙ Webhook URLが無効です','error');openSettings();return;}
+  const ta=document.getElementById('copy-textarea');
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:ta.value})});
+    showNotif('📤 Webhookに送信しました','success');
+  }catch(e){showNotif('❌ 送信失敗：'+e.message,'error');}
+}
+
+async function autoSendWebhook(){
+  const url=(localStorage.getItem('webhookUrl')||DEFAULT_WEBHOOK).trim();
+  if(!url||!url.startsWith('http')) return;
+  const ta=document.getElementById('copy-textarea');
+  try{await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:ta.value})});}catch(e){}
+}
+
+function retryAll(){
+  answersA=new Array(24).fill(0);answersB=new Array(40).fill(null);answersC=new Array(40).fill(null);
+  document.getElementById('phase-badge').className='phase-badge pa';
+  document.getElementById('phase-badge').textContent='診断A';
+  showScreen('profile');
+}
+
+function showNotif(msg,type){
+  const n=document.createElement('div');
+  n.className='notif '+type;n.textContent=msg;
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),3500);
+}
+</script>
+</body>
+</html>
